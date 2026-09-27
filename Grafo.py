@@ -16,9 +16,8 @@ así solo se guarda memoria por las conexiones que existen de verdad.
 Las conexiones de fibra son BIDIRECCIONALES: si A se conecta con B con
 latencia de 10 ms, se puede viajar en ambas direcciones con el mismo costo.
 
-Este archivo (Paso 1) contiene solo la estructura base: vértices, aristas
-y visualización. Dijkstra y el Ping General (BFS) se agregan en pasos
-posteriores sobre esta misma clase.
+Este archivo incluye la estructura base (vértices y aristas), el algoritmo
+de Dijkstra para la ruta óptima y el Ping General con BFS.
 """
 
 
@@ -151,6 +150,100 @@ class Grafo:
                 print(f"{servidor} -> {enlaces}")
             else:
                 print(f"{servidor} -> (sin conexiones)")
+
+    # ---------------- Enrutamiento: Camino más corto (Dijkstra) ----------------
+    def dijkstra(self, origen, destino):
+        """Calcula la ruta óptima (menor latencia total) entre dos servidores.
+
+        Algoritmo de Dijkstra:
+            1. Todas las distancias inician en infinito, excepto la del
+               origen, que vale 0.
+            2. Se toma siempre el vértice NO visitado con menor distancia
+               acumulada y se "relaja" cada una de sus aristas: si ir al
+               vecino pasando por ese vértice es más barato que lo conocido
+               hasta ahora, se actualiza la distancia y se anota por dónde
+               se llegó (para reconstruir el camino al final).
+            3. Se repite hasta visitar el destino o agotar los alcanzables.
+            Se usa una cola simple en vez de heap para mantener el código
+            didáctico; para la escala de la simulación es suficiente.
+
+        Imprime la ruta salto por salto y el costo total acumulado, y
+        reporta también el caso en que no existe ninguna ruta (servidores
+        en componentes desconectadas).
+
+        Returns:
+            Tupla (camino, costo_total) donde camino es la lista de
+            servidores desde el origen hasta el destino, o (None, None) si
+            no existe ruta o algún servidor no existe.
+        """
+        if origen not in self.adyacencia:
+            print(f"Error: el servidor origen '{origen}' no existe en la red.")
+            return None, None
+        if destino not in self.adyacencia:
+            print(f"Error: el servidor destino '{destino}' no existe en la red.")
+            return None, None
+
+        # Paso 1: distancias en infinito, origen en 0, nadie visitado
+        infinito = float("inf")
+        distancias = {servidor: infinito for servidor in self.adyacencia}
+        distancias[origen] = 0
+        previos = {servidor: None for servidor in self.adyacencia}
+        visitados = set()
+
+        # Paso 2 y 3: extraer el no visitado más cercano y relajar aristas
+        while True:
+            actual = None
+            menor = infinito
+            for servidor in self.adyacencia:
+                if servidor not in visitados and distancias[servidor] < menor:
+                    menor = distancias[servidor]
+                    actual = servidor
+
+            if actual is None or actual == destino:
+                break  # no quedan alcanzables, o ya llegamos al destino
+
+            visitados.add(actual)
+            for vecino, peso in self.adyacencia[actual].items():
+                nueva_distancia = distancias[actual] + peso
+                if nueva_distancia < distancias[vecino]:
+                    distancias[vecino] = nueva_distancia
+                    previos[vecino] = actual
+
+        # Si el destino sigue en infinito, está en otra componente del grafo
+        if distancias[destino] == infinito:
+            print(f"No existe ruta de '{origen}' a '{destino}' (red desconectada).")
+            self.funcion_log(
+                f"Cálculo de ruta FALLIDO (sin ruta): {origen} -> {destino}"
+            )
+            return None, None
+
+        # Reconstruir el camino hacia atrás usando los previos
+        camino = []
+        nodo = destino
+        while nodo is not None:
+            camino.insert(0, nodo)
+            nodo = previos[nodo]
+
+        costo_total = distancias[destino]
+
+        # Imprimir salto por salto con el costo de cada arista y el acumulado
+        print(f"\nRuta óptima de '{origen}' a '{destino}':")
+        acumulado = 0
+        for i in range(len(camino)):
+            if i == 0:
+                print(f"  Salida: {camino[i]}")
+            else:
+                tramo = self.adyacencia[camino[i - 1]][camino[i]]
+                acumulado += tramo
+                print(f"  Salto {i}: {camino[i - 1]} -> {camino[i]} "
+                      f"({tramo} ms) | Acumulado: {acumulado} ms")
+        print(f"  Costo total: {costo_total} ms")
+
+        self.funcion_log(
+            f"Cálculo de ruta: {origen} -> {destino} | "
+            f"Saltos: {' -> '.join(camino)} | Costo total: {costo_total} ms"
+        )
+        return camino, costo_total
 
     # ---------------- Logger local (solo para pruebas aisladas) ----------------
     def _log_local(self, detalle):
