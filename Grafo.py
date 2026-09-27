@@ -151,6 +151,62 @@ class Grafo:
             else:
                 print(f"{servidor} -> (sin conexiones)")
 
+    # ---------------- Diagnóstico: Ping General (BFS) ----------------
+    def ping_general(self, servidor_inicio=None):
+        """Recorre el grafo con BFS y reporta si hay servidores aislados.
+
+        BFS (búsqueda en anchura): se parte de un servidor 'inicio' y se
+        recorre el grafo por niveles usando una cola FIFO: se visita el
+        servidor actual, se encolan todos sus vecinos no visitados y se
+        repite. Al terminar, los vértices alcanzados son todos los que están
+        comunicados con el inicio; cualquier servidor que NO fue visitado
+        está "aislado" (sin camino que lo conecte con el resto).
+
+        Args:
+            servidor_inicio: Vértice desde el que se lanza el ping. Si no
+                se indica, se usa el primer servidor registrado.
+
+        Returns:
+            Lista con los nombres de los servidores aislados (vacía si la
+            red está completamente comunicada), o None si la red está vacía
+            o el inicio no existe.
+        """
+        if not self.adyacencia:
+            print("La red está vacía: no hay servidores que revisar.")
+            return None
+
+        inicio = servidor_inicio if servidor_inicio else self.obtener_servidores()[0]
+        if inicio not in self.adyacencia:
+            print(f"Error: el servidor '{inicio}' no existe en la red.")
+            return None
+
+        # BFS: cola FIFO -> primero se visita todo lo más cercano (en "anchura")
+        visitados = set()
+        cola = [inicio]
+        while cola:
+            actual = cola.pop(0)
+            if actual in visitados:
+                continue
+            visitados.add(actual)
+            for vecino in self.adyacencia[actual]:
+                if vecino not in visitados:
+                    cola.append(vecino)
+
+        aislados = [s for s in self.adyacencia if s not in visitados]
+
+        print(f"\n--- Ping General (BFS desde '{inicio}') ---")
+        print(f"Alcanzables: {len(visitados)}/{len(self.adyacencia)} servidores")
+        if aislados:
+            print("ATENCIÓN - SERVIDORES AISLADOS:", ", ".join(aislados))
+        else:
+            print("Todos los servidores están comunicados. Red sin aislamientos.")
+
+        self.funcion_log(
+            f"Ping General desde {inicio}: {len(visitados)}/{len(self.adyacencia)} alcanzables"
+            + (f" | Aislados: {', '.join(aislados)}" if aislados else " | Red completa")
+        )
+        return aislados
+
     # ---------------- Enrutamiento: Camino más corto (Dijkstra) ----------------
     def dijkstra(self, origen, destino):
         """Calcula la ruta óptima (menor latencia total) entre dos servidores.
