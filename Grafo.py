@@ -1,7 +1,5 @@
 """
 Módulo 3 - Topología y Enrutamiento de Red (Grafos)
-Proyecto: Sistema de Archivos Distribuido y Enrutador de Red
-EIF207 Estructuras de Datos - UNA
 
 Representa la red de servidores como un GRAFO PONDERADO:
   - Vértices: servidores.
@@ -306,6 +304,6 @@ class Grafo:
         from datetime import datetime
         marca = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"[LOG local] {marca} - {detalle}")
-        # En la integración final, Persona D (Módulo 4) reemplaza este
+        # En la integración final, Daniel reemplaza este
         # callback por su función real que hace append a
         # network_audit_log.txt con fecha, hora y detalle.
