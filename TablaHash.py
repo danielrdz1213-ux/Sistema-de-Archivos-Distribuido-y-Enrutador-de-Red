@@ -53,7 +53,7 @@ class TablaHash:
         indice = self._hash(usuario)
 
         actual = self.tabla[indice]
-        while actual==true:
+        while actual:
             if actual.usuario == usuario:
                 self.funcion_log(f"Registro FALLIDO (usuario ya existe): {usuario}")
                 return False
