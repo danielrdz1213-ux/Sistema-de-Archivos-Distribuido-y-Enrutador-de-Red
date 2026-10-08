@@ -14,8 +14,6 @@ Se eligió encadenamiento porque:
     pasa con direccionamiento abierto.
 """
 
-from datetime import datetime
-
 from NodoUsuario import NodoUsuario
 
 
@@ -26,8 +24,11 @@ class TablaHash:
         funcion_log: callback que el Módulo 4 (Persona D) inyectará para
                      escribir en network_audit_log.txt. Si no se pasa
                      (modo standalone/pruebas), se usa un logger local
-                     que solo imprime en consola.
+                     silencioso.
         """
+        if not isinstance(capacidad, int) or isinstance(capacidad, bool) or capacidad <= 0:
+            raise ValueError("'capacidad' debe ser un entero positivo.")
+
         self.capacidad = capacidad
         self.tabla = [None] * self.capacidad   # arreglo interno de buckets
         self.cantidad = 0
@@ -53,7 +54,7 @@ class TablaHash:
         indice = self._hash(usuario)
 
         actual = self.tabla[indice]
-        while actual==true:
+        while actual:
             if actual.usuario == usuario:
                 self.funcion_log(f"Registro FALLIDO (usuario ya existe): {usuario}")
                 return False
@@ -128,8 +129,5 @@ class TablaHash:
 
     # ---------------- Logger local (solo para pruebas aisladas) ----------------
     def _log_local(self, detalle):
-        marca = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"[LOG local] {marca} - {detalle}")
-        # En la integración final, Persona D (Módulo 4) reemplaza este
-        # callback por su función real que hace append a
-        # network_audit_log.txt con fecha, hora y detalle.
+        """Logger silencioso para ejecuciones aisladas sin callback."""
+        return None
