@@ -18,6 +18,9 @@ Este archivo incluye la estructura base (vértices y aristas), el algoritmo
 de Dijkstra para la ruta óptima y el Ping General con BFS.
 """
 
+from sistema_archivos import FileSystem
+from TablaHash import TablaHash
+
 
 class Grafo:
     def __init__(self, funcion_log=None):
@@ -26,11 +29,14 @@ class Grafo:
             { "ServidorA": {"ServidorB": 10, "ServidorC": 25}, ... }
         funcion_log: callback que el Módulo 4 (Persona D) inyectará para
             escribir en network_audit_log.txt. Si no se pasa (modo
-            standalone/pruebas), se usa un logger local que solo imprime
-            en consola, igual que en el Módulo 2.
+            standalone/pruebas), se usa un logger local silencioso.
         """
         self.adyacencia = {}
+        # Cada servidor mantiene su propio árbol. Las llaves son los mismos
+        # nombres usados por la lista de adyacencia.
+        self.sistemas_archivos = {}
         self.funcion_log = funcion_log or self._log_local
+        self.tablas_credenciales = {}
 
     # ---------------- Vértices (servidores) ----------------
     def agregar_servidor(self, nombre):
@@ -49,6 +55,12 @@ class Grafo:
             return False
 
         self.adyacencia[nombre] = {}
+        self.sistemas_archivos[nombre] = FileSystem()
+        self.tablas_credenciales[nombre] = TablaHash(
+            funcion_log=lambda detalle, servidor=nombre: self.funcion_log(
+                f"[Servidor {servidor}] {detalle}"
+            )
+        )
         self.funcion_log(f"Servidor agregado a la red: {nombre}")
         return True
 
@@ -74,6 +86,8 @@ class Grafo:
 
         # Quitar el vértice mismo (sus conexiones salientes se van con él)
         del self.adyacencia[nombre]
+        del self.sistemas_archivos[nombre]
+        del self.tablas_credenciales[nombre]
         self.funcion_log(f"Servidor eliminado de la red: {nombre}")
         return True
 
@@ -98,7 +112,9 @@ class Grafo:
         if origen == destino:
             print("Error: no se puede conectar un servidor consigo mismo.")
             return False
-        if not isinstance(latencia_ms, (int, float)) or latencia_ms <= 0:
+        if (not isinstance(latencia_ms, (int, float))
+                or not float("-inf") < latencia_ms < float("inf")
+                or latencia_ms <= 0):
             print("Error: la latencia debe ser un número mayor que 0 ms.")
             return False
 
@@ -132,6 +148,14 @@ class Grafo:
     def obtener_servidores(self):
         """Devuelve la lista de nombres de todos los vértices del grafo."""
         return list(self.adyacencia.keys())
+
+    def obtener_sistema_archivos(self, servidor):
+        """Devuelve el árbol asociado al servidor o None si no existe."""
+        return self.sistemas_archivos.get(servidor)
+
+    def obtener_tabla_credenciales(self, servidor):
+        """Devuelve la tabla hash local del servidor o None si no existe."""
+        return self.tablas_credenciales.get(servidor)
 
     def mostrar_red(self):
         """Imprime la topología completa: cada servidor y sus conexiones."""
@@ -226,9 +250,8 @@ class Grafo:
         en componentes desconectadas).
 
         Returns:
-            Tupla (camino, costo_total) donde camino es la lista de
-            servidores desde el origen hasta el destino, o (None, None) si
-            no existe ruta o algún servidor no existe.
+            Tupla (camino, costo_total). Para servidores existentes sin ruta
+            devuelve ([], infinito); si un servidor no existe, (None, None).
         """
         if origen not in self.adyacencia:
             print(f"Error: el servidor origen '{origen}' no existe en la red.")
@@ -269,7 +292,7 @@ class Grafo:
             self.funcion_log(
                 f"Cálculo de ruta FALLIDO (sin ruta): {origen} -> {destino}"
             )
-            return None, None
+            return [], infinito
 
         # Reconstruir el camino hacia atrás usando los previos
         camino = []
@@ -301,9 +324,5 @@ class Grafo:
 
     # ---------------- Logger local (solo para pruebas aisladas) ----------------
     def _log_local(self, detalle):
-        from datetime import datetime
-        marca = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"[LOG local] {marca} - {detalle}")
-        # En la integración final, Daniel reemplaza este
-        # callback por su función real que hace append a
-        # network_audit_log.txt con fecha, hora y detalle.
+        """Logger silencioso para ejecuciones aisladas sin callback."""
+        return None

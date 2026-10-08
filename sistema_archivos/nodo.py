@@ -65,6 +65,21 @@ class Nodo:
                 f"El nodo '{hijo.nombre}' ya está registrado en '{self.nombre}'."
             )
 
+        if hijo is self:
+            raise ValueError("Un nodo no puede agregarse como hijo de sí mismo.")
+
+        if hijo.padre is not None:
+            raise ValueError(
+                f"El nodo '{hijo.nombre}' ya pertenece a otro padre."
+            )
+
+        # Si el hijo es un ancestro de este nodo, enlazarlo crearía un ciclo.
+        ancestro = self
+        while ancestro is not None:
+            if ancestro is hijo:
+                raise ValueError("No se puede agregar un ancestro como hijo.")
+            ancestro = ancestro.padre
+
         hijo.padre = self
         self.hijos.append(hijo)
 
