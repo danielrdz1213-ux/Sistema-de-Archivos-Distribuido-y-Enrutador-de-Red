@@ -127,3 +127,7 @@ class TablaHash:
                 actual = actual.siguiente
             print(f"[{i}] -> {contenido if contenido else 'vacío'}")
 
+   # ---------------- Logger local (solo para pruebas aisladas) ----------------
+    def _log_local(self, detalle):
+        """Logger silencioso para ejecuciones aisladas sin callback."""
+        return None

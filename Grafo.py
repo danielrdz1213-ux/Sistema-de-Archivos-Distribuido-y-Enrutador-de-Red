@@ -51,6 +51,8 @@ class Grafo:
 
         nombre = nombre.strip()
         if nombre in self.adyacencia:
+            print(f"Error: el servidor '{nombre}' ya existe en la red. "
+                  f"No se registró un servidor duplicado.")
             self.funcion_log(f"Registro de servidor FALLIDO (ya existe): {nombre}")
             return False
 
