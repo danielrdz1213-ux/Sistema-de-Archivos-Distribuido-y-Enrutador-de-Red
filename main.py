@@ -84,7 +84,12 @@ def login(grafo):
 
             continue
         usuario = input("Usuario: ").strip()
-        contrasena = _leer_contrasena().strip()
+        # El enmascaramiento (asteriscos) solo aplica al inicio de sesión;
+        # al registrar el usuario la contraseña se muestra con normalidad.
+        if op == "1":
+            contrasena = _leer_contrasena().strip()
+        else:
+            contrasena = input("Contraseña: ").strip()
         if not usuario or not contrasena:
             print(">> Usuario y contraseña no pueden estar vacíos.")
             input("Presiona ENTER para continuar...")
