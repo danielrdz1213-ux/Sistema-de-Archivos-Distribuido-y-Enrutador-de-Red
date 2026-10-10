@@ -20,17 +20,19 @@ class Nodo:
 
     def __init__(self, tipo, nombre, padre=None):
         """Inicializa un nodo vacío (sin hijos)."""
+        # Validar el tipo ANTES de guardarlo: solo Carpetas o Archivos.
         if tipo not in ["Carpeta", "Archivo"]:
             raise ValueError(
                 f"'tipo' debe ser 'Carpeta' o 'Archivo', no {tipo!r}."
             )
+        # El nombre debe ser texto con al menos un carácter significativo.
         if not isinstance(nombre, str) or not nombre.strip():
             raise ValueError("'nombre' debe ser una cadena con al menos un carácter.")
 
-        self.tipo = tipo
-        self.nombre = nombre.strip()
-        self.hijos = []
-        self.padre = padre
+        self.tipo = tipo              # "Carpeta" o "Archivo"
+        self.nombre = nombre.strip()  # guardado sin espacios sobrantes
+        self.hijos = []               # lista de Nodos contenidos aquí
+        self.padre = padre            # None únicamente en la raíz
 
     def es_carpeta(self):
         """Devuelve True si el nodo representa una carpeta."""
@@ -54,20 +56,25 @@ class Nodo:
         Es una utilidad de construcción del árbol (no implementa búsquedas ni
         eliminaciones): garantiza que hijo.padre apunte a este nodo.
         """
+        # Solo se aceptan instancias de Nodo.
         if not isinstance(hijo, Nodo):
             raise ValueError("'hijo' debe ser una instancia de Nodo.")
+        # Un archivo no puede tener contenido dentro.
         if self.es_archivo():
             raise ValueError(
                 f"El archivo '{self.nombre}' no puede contener nodos hijos."
             )
+        # No se permiten nombres duplicados dentro del mismo padre.
         if hijo in self.hijos:
             raise ValueError(
                 f"El nodo '{hijo.nombre}' ya está registrado en '{self.nombre}'."
             )
 
+        # Un nodo nunca puede ser hijo de sí mismo.
         if hijo is self:
             raise ValueError("Un nodo no puede agregarse como hijo de sí mismo.")
 
+        # El hijo no debe estar ya enlazado a otra parte del árbol.
         if hijo.padre is not None:
             raise ValueError(
                 f"El nodo '{hijo.nombre}' ya pertenece a otro padre."
@@ -85,6 +92,7 @@ class Nodo:
 
     def __repr__(self):
         """Representación de depuración del nodo y sus relaciones."""
+        # Nombre del padre para la vista de depuración (None si es la raíz).
         nombre_padre = self.padre.nombre if self.padre is not None else None
         return (
             f"Nodo(tipo={self.tipo!r}, nombre={self.nombre!r}, "

@@ -23,11 +23,14 @@ class FileSystem:
 
     def __init__(self):
         """Inicializa el sistema de archivos con su nodo raíz "/"."""
+        # La raíz siempre es una carpeta llamada "/" y nunca se elimina.
         self.raiz = Nodo("Carpeta", "/")
+        # El directorio de trabajo arranca ubicado en la raíz.
         self.directorio_actual = self.raiz
 
     def esta_vacio(self):
         """Devuelve True si la raíz todavía no contiene ningún nodo hijo."""
+        # Basta con contar los hijos directos de la raíz.
         return self.raiz.get_cantidad_hijos() == 0
 
     def crear_nodo(self, ruta_padre, nombre_nuevo, tipo_nuevo):
@@ -51,6 +54,7 @@ class FileSystem:
                 si 'tipo_nuevo' o 'nombre_nuevo' no son válidos o si ya existe
                 un nodo con ese nombre dentro de la carpeta destino.
         """
+        # La ruta debe ser texto no vacío antes de intentar recorrerla.
         if not isinstance(ruta_padre, str) or not ruta_padre.strip():
             raise ValueError("'ruta_padre' debe ser una ruta como '/' o '/Documentos'.")
 
@@ -77,6 +81,7 @@ class FileSystem:
                 )
             actual = siguiente
 
+        # Solo las carpetas pueden contener nodos dentro.
         if not actual.es_carpeta():
             raise ValueError(
                 f"'{ruta_padre}' es un archivo, no una carpeta: "
@@ -85,6 +90,7 @@ class FileSystem:
 
         nuevo_nodo = Nodo(tipo_nuevo, nombre_nuevo)  # valida tipo y nombre
 
+        # Verificar que no exista ya un nodo con ese nombre en el destino.
         for hijo in actual.hijos:
             if hijo.nombre == nuevo_nodo.nombre:
                 raise ValueError(
@@ -109,12 +115,15 @@ class FileSystem:
         """
 
         def dibujar(nodo, nivel):
-            sangria = "    " * nivel
+            sangria = "    " * nivel  # 4 espacios por nivel de profundidad
+            # Las carpetas llevan "/" final; la raíz se imprime sin sufijo.
             sufijo = "/" if nodo.es_carpeta() and not nodo.es_raiz() else ""
             print(f"{sangria}- {nodo.nombre}{sufijo}")
+            # Bajar recursivamente a cada hijo (un nivel más adentro).
             for hijo in nodo.hijos:
                 dibujar(hijo, nivel + 1)
 
+        # El dibujo comienza en la raíz con nivel de sangría 0.
         dibujar(self.raiz, 0)
 
     def buscar_nodo(self, nombre_objetivo):
@@ -133,21 +142,25 @@ class FileSystem:
             None si el nombre no existe en todo el árbol. También devuelve None
             si 'nombre_objetivo' no es un texto con al menos un carácter.
         """
+        # Si el dato no es texto válido, no hay nada que buscar.
         if not isinstance(nombre_objetivo, str) or not nombre_objetivo.strip():
             return None
 
+        # Se limpian espacios sobrantes antes de comparar nombres.
         nombre_buscado = nombre_objetivo.strip()
 
+        # Recorrido recursivo en preorden (hijo -> subárbol -> siguiente hermano).
         def buscar(nodo, ruta_actual):
             for hijo in nodo.hijos:
-                ruta_hijo = ruta_actual + "/" + hijo.nombre
+                ruta_hijo = ruta_actual + "/" + hijo.nombre  # ruta acumulada
                 if hijo.nombre == nombre_buscado:
-                    return ruta_hijo
+                    return ruta_hijo  # coincidencia exacta: se devuelve la ruta
                 encontrado = buscar(hijo, ruta_hijo)
                 if encontrado is not None:
-                    return encontrado
-            return None
+                    return encontrado  # estaba más abajo: subir el resultado
+            return None  # en esta rama no está el nombre buscado
 
+        # La búsqueda siempre arranca desde la raíz con ruta vacía.
         return buscar(self.raiz, "")
 
     def eliminar_nodo(self, ruta_objetivo):
@@ -166,6 +179,7 @@ class FileSystem:
             ValueError: Si la ruta es inválida, si no existe o si se intenta
                 eliminar el nodo raíz '/', que el árbol siempre necesita.
         """
+        # La ruta debe ser texto no vacío antes de procesarla.
         if not isinstance(ruta_objetivo, str) or not ruta_objetivo.strip():
             raise ValueError("'ruta_objetivo' debe ser una ruta como '/Documentos'.")
 
@@ -200,7 +214,7 @@ class FileSystem:
             if hijo.nombre == partes[-1]:
                 objetivo = hijo
                 break
-        if objetivo is None:
+        if objetivo is None:  # el último segmento no es hijo de ese padre
             raise ValueError(f"La ruta '{ruta_objetivo}' no existe.")
 
         # Si el directorio de trabajo estaba dentro de lo eliminado, se
@@ -214,10 +228,11 @@ class FileSystem:
 
         # Eliminación en cascada: se liberan primero las ramas más profundas
         def vaciar_subarbol(nodo):
+            # Primero se vacían las ramas más profundas (postorden)...
             for hijo in nodo.hijos:
                 vaciar_subarbol(hijo)
-            nodo.hijos = []
-            nodo.padre = None
+            nodo.hijos = []    # se suelta la lista de hijos
+            nodo.padre = None  # se rompe el enlace con el padre
 
         vaciar_subarbol(objetivo)
 

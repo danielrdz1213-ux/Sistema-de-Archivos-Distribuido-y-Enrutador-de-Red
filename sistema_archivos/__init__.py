@@ -7,7 +7,9 @@ directamente del paquete:
     from sistema_archivos import FileSystem, Nodo
 """
 
+# Se importan las clases "públicas" del paquete para reexportarlas...
 from .file_system import FileSystem
 from .nodo import Nodo
 
+# ...y se declaran como las únicas que expone el import del paquete.
 __all__ = ["FileSystem", "Nodo"]
