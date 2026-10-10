@@ -216,40 +216,51 @@ def menu_red(grafo):
 
         # 1) Crear un servidor (vértice) nuevo en la red.
         if op == "1":
-            grafo.agregar_servidor(input("Servidor: ").strip())
+            nombre = input("Servidor: ").strip()
+            # agregar_servidor imprime sus errores; aquí se confirma el éxito.
+            if grafo.agregar_servidor(nombre):
+                print(f">> Servidor '{nombre}' agregado correctamente.")
             input("Presiona ENTER para continuar...")
             os.system("cls")
 
         # 2) Conectar dos servidores; la latencia debe ser un número.
         elif op == "2":
             a, b = input("Origen: ").strip(), input("Destino: ").strip()
+            latencia = None
             try:
-                grafo.agregar_conexion(a, b, float(input("Latencia ms: ")))
+                latencia = float(input("Latencia ms: "))
             except ValueError:
                 # float() falló: se tecleó algo que no es un número.
                 print(">> Latencia inválida.")
-                input("Presiona ENTER para continuar...")
-                os.system("cls")
+            # Con la latencia convertida se intenta crear la conexión;
+            # agregar_conexion imprime sus propios errores si devuelve False.
+            if latencia is not None and grafo.agregar_conexion(a, b, latencia):
+                print(f">> Conexión '{a} <-> {b}' establecida ({latencia} ms).")
+            input("Presiona ENTER para continuar...")
+            os.system("cls")
         # 3) Eliminar el enlace (arista) entre dos servidores.
         elif op == "3":
-            grafo.eliminar_conexion(input("Origen: ").strip(), input("Destino: ").strip())
+            a, b = input("Origen: ").strip(), input("Destino: ").strip()
+            # eliminar_conexion imprime sus errores; aquí se confirma el éxito.
+            if grafo.eliminar_conexion(a, b):
+                print(f">> Conexión '{a} <-> {b}' eliminada correctamente.")
             input("Presiona ENTER para continuar...")
             os.system("cls")
 
-        # 4) Eliminar un servidor y todas sus conexiones.
         elif op == "4":
-            grafo.eliminar_servidor(input("Servidor: ").strip())
+            nombre = input("Servidor: ").strip()
+            # eliminar_servidor imprime sus errores; aquí se confirma el éxito.
+            if grafo.eliminar_servidor(nombre):
+                print(f">> Servidor '{nombre}' eliminado correctamente.")
             input("Presiona ENTER para continuar...")
             os.system("cls")
 
 
-        # 5) Calcular la ruta óptima (menor latencia) con Dijkstra.
         elif op == "5":
             grafo.dijkstra(input("Origen: ").strip(), input("Destino: ").strip())
             input("Presiona ENTER para continuar...")
             os.system("cls")
 
-        # 6) Ping general: detectar servidores aislados con BFS.
         elif op == "6":
             inicio = input("Servidor inicial (Enter = automático): ").strip()
             grafo.ping_general(inicio or None)
@@ -257,13 +268,11 @@ def menu_red(grafo):
             os.system("cls")
 
 
-        # 7) Mostrar la topología completa de la red.
         elif op == "7":
             grafo.mostrar_red()
             input("Presiona ENTER para continuar...")
             os.system("cls")
 
-        # 8) Volver al menú principal.
         elif op == "8":
             print("Regresando al menu anterior...")
             return
@@ -274,14 +283,10 @@ def menu_red(grafo):
 
 
 def main():
-    """Bucle principal: acceso -> sesión activa -> cierre -> repetir."""
-    # Se crea la red vacía y se conecta el callback de auditoría (M4),
-    # de modo que todos los módulos logueen en network_audit_log.txt.
     grafo = Grafo(funcion_log=registrar_log)
     # Ciclo de sesiones: 'Cerrar sesión' devuelve al menú de acceso; el
     # programa solo termina cuando en el menú de acceso se elige 'Salir'.
     while True:
-        # Pedir credenciales hasta autenticar (None si eligió salir).
         usuario = login(grafo)
         if usuario is None:
             break  # el usuario eligió 'Salir' en el menú de acceso
@@ -290,22 +295,18 @@ def main():
             op = input("Elija una opción: ").strip()
             os.system("cls")
 
-            # 1) Submenú de directorios (árbol de archivos del servidor).
             if op == "1":
                 menu_directorios(grafo, usuario)
                 input("Presiona ENTER para continuar...")
                 os.system("cls")
-            # 2) Submenú de red (grafo, Dijkstra y ping).
             elif op == "2":
                 menu_red(grafo)
                 input("Presiona ENTER para continuar...")
                 os.system("cls")
-            # 3) Ver en vivo todo lo que hay en el log de auditoría.
             elif op == "3":
                 consulta_en_vivo()
                 input("Presiona ENTER para continuar...")
                 os.system("cls")
-            # 4) Cerrar sesión: se registra en el log y se vuelve al acceso.
             elif op == "4":
                 registrar_log(f"[Sesión] {usuario} cerró sesión")
                 print(">> Sesión cerrada. Regresando al menú de acceso...")
@@ -317,7 +318,5 @@ def main():
                 input("Presiona ENTER para continuar...")
                 os.system("cls")
 
-# Punto de entrada: main() solo se ejecuta si se corre este archivo
-# directamente (no al importarlo desde otro módulo).
 if __name__ == "__main__":
     main()
