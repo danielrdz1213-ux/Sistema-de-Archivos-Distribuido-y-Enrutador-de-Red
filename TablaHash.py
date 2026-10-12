@@ -107,6 +107,46 @@ class TablaHash:
         self.funcion_log(f"Login FALLIDO (usuario no existe): {usuario}")
         return False
 
+    # ---------------- Eliminar usuario ----------------
+    def eliminar_usuario(self, usuario):
+        """
+        Elimina un usuario de la tabla hash (encadenamiento).
+
+        Recorre únicamente la cadena que le corresponde al índice calculado
+        con _hash(usuario), desenlaza el nodo encontrado (ya sea la cabeza
+        de la lista o un nodo intermedio) y descuenta el contador de
+        usuarios. No deja "tumbas" (tombstones): el nodo se saca por
+        completo de la cadena, que es una ventaja del encadenamiento.
+
+        Retorna True si se eliminó; False si el usuario no existía.
+        Cada intento (éxito o fallo) queda registrado vía self.funcion_log,
+        igual que registrar_usuario y validar_login.
+        """
+        # 1) Índice del arreglo donde vive la cadena de este usuario.
+        indice = self._hash(usuario)
+
+        # 2) Recorrer la cadena guardando el nodo anterior (para desenlazar).
+        anterior = None
+        actual = self.tabla[indice]
+        while actual:
+            if actual.usuario == usuario:  # coincidió el nombre de usuario
+                if anterior is None:
+                    # El nodo a eliminar era el primero de la cadena:
+                    # la cabeza pasa a ser su siguiente.
+                    self.tabla[indice] = actual.siguiente
+                else:
+                    # Nodo intermedio o final: se "salta" enlazando al siguiente.
+                    anterior.siguiente = actual.siguiente
+                self.cantidad -= 1  # la tabla ahora tiene un usuario menos
+                self.funcion_log(f"Usuario ELIMINADO: {usuario}")
+                return True
+            anterior = actual  # antes de avanzar, recordar el nodo previo
+            actual = actual.siguiente  # probar con el siguiente de la cadena
+
+        # Se agotó la cadena sin coincidencias: el usuario no estaba registrado.
+        self.funcion_log(f"Eliminación FALLIDA (usuario no existe): {usuario}")
+        return False
+
     # ---------------- Redimensionar (rehashing) ----------------
     def _redimensionar(self):
         """Duplica la capacidad y reinserta todo cuando el factor de carga > 0.75."""

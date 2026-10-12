@@ -63,12 +63,12 @@ def login(grafo):
     while True:
         # Menú de acceso: se repite hasta autenticarse o elegir "Salir".
         print("\n=== ACCESO AL SERVIDOR ===\n1. Iniciar sesión\n2. Registrar usuario\n"
-              "3. Agregar servidor\n4. Salir")
+              "3. Agregar servidor\n4. Eliminar usuario\n5. Salir")
         op = input("Elija una opción: ").strip()
         os.system("cls")  # limpiar pantalla tras leer la opción
 
-        # Opción 4: salir del programa (se devuelve None al llamador).
-        if op == "4":
+        # Opción 5: salir del programa (se devuelve None al llamador).
+        if op == "5":
             return None
         # Opción 3: crear un servidor nuevo (nace con árbol y tabla propios).
         if op == "3":
@@ -76,6 +76,25 @@ def login(grafo):
         
             if grafo.agregar_servidor(nombre_servidor):
                 print(f">> Servidor '{nombre_servidor}' creado con árbol y tabla de credenciales propios.")
+            input("Presiona ENTER para continuar...")
+            os.system("cls")
+            continue
+        # Opción 4: eliminar un usuario de la tabla hash del servidor.
+        if op == "4":
+            # Se pide el servidor donde está la cuenta a eliminar.
+            servidor = input("Servidor: ").strip()
+            # Tabla hash de ese servidor; None si el servidor no existe.
+            usuarios = grafo.obtener_tabla_credenciales(servidor)
+            if usuarios is None:
+                print(">> Ese servidor no existe. Créelo primero con la opción 3.")
+            else:
+                usuario = input("Usuario a eliminar: ").strip()
+                if not usuario:
+                    print(">> El usuario no puede estar vacío.")
+                elif usuarios.eliminar_usuario(usuario):
+                    print(">> Usuario eliminado.")
+                else:
+                    print(">> Ese usuario no existe.")
             input("Presiona ENTER para continuar...")
             os.system("cls")
             continue
@@ -210,7 +229,7 @@ def menu_red(grafo):
     while True:
         # Opciones del Módulo 3 (red/enrutamiento); el log lo hace Grafo solo.
         print("\n--- RED ---\n1. Agregar servidor\n2. Agregar conexión\n3. Eliminar conexión\n"
-              "4. Eliminar servidor\n5. Ruta más corta (Dijkstra)\n6. Ping general (BFS)\n7. Ver red\n8. Volver")
+             "4. Eliminar servidor\n5. Ruta más corta (Dijkstra)\n6. Ping general (BFS)\n7. Ver red\n8. Volver")
         op = input("Elija una opción: ").strip()
         os.system("cls")  # limpiar pantalla tras leer la opción
 
