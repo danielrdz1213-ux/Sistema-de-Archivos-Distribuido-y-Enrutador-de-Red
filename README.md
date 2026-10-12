@@ -18,6 +18,7 @@ Mariano: Una vez con cada módulo concluído se procede a afinar detalles en el 
 Pronts:
 
 Ayuda a realizar la tabla hash de este proyecto, mi parte es el modulo 2 (claude) Quiero que cuando el usuario digite la contrasena, solo se muestren asterizcos (cline) Quiero que realizes pruebas de cada menu para ver si funcionan correctamente (cline) Explícame detalladamente la tabla hash, entiendo comofunciona, pero el método para redimensionar y una fórmula que viene ahí no entiendo para que es (claude)
+
 ---
 
 ## Kendall
