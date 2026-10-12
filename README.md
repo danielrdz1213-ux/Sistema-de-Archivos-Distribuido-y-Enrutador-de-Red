@@ -145,3 +145,27 @@ fue una sola línea: `while actual==true:` → `while actual:` (commit d3fb960),
 porque un nodo None ya se evalúa como falso.
 
 
+
+---
+
+## Daniel
+
+## Prompt 1. Log de auditoría
+"Crea un módulo `auditoria.py` con una función `registrar_log(detalle)` que escriba en `network_audit_log.txt` líneas con el formato `AAAA-MM-DD | HH:MM:SS | detalle`, sin borrar lo anterior."
+Ajuste manual: hice que la ruta del archivo se calcule junto al `.py` (con `os.path`), para que el log se guarde en el mismo lugar aunque el programa se ejecute desde otra carpeta.
+
+## Prompt 2. Consulta en vivo del log
+"Agrega una función `consulta_en_vivo()` que lea el log completo y lo muestre en pantalla. Si el archivo todavía no existe, que no se caiga."
+Ajuste manual: manejé el `FileNotFoundError` para mostrar "(el log está vacío)" cuando nunca se ha registrado nada.
+
+## Prompt 3. Menú principal integrado
+"Crea un `main.py` que una los 4 módulos: un acceso con login/registro de usuarios (tabla hash), un menú de directorios (árbol), un menú de red (grafo) y la consulta del log."
+Ajuste manual: agregué la opción de crear servidores nuevos y de eliminar usuarios desde el acceso. Agregué `os.system("cls")` y pausas con "Presiona ENTER" para que la consola quede ordenada.
+
+## Prompt 4. Auditoría en cada acción
+"Haz que cada acción importante (login, creación de nodos, cálculo de rutas) llame a `registrar_log` con el usuario que la hizo."
+Ajuste manual: definí el texto de cada mensaje, por ejemplo `[Árbol] usuario creó Carpeta 'x' en '/' del servidor 'y'`, para que el log sea fácil de leer y auditar.
+
+## Prompt 5. Prueba de integración
+"Haz una prueba de integración que recorra los 4 módulos juntos y confirme que el log se llena correctamente."
+Ajuste manual: después de comprobar que funcionaba, eliminé la prueba del repositorio para dejar el proyecto limpio.
