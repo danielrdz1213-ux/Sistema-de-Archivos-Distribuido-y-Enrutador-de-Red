@@ -113,6 +113,7 @@ Ayuda a realizar la tabla hash de este proyecto, mi parte es el modulo 2 (claude
 
 - **Observación:** todo listo
 
+---
 
 ## Greivin 
 ## Prompt Estructura del grafo. :
