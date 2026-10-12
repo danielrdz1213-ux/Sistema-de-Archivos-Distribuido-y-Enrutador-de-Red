@@ -18,6 +18,9 @@ Este archivo incluye la estructura base (vértices y aristas), el algoritmo
 de Dijkstra para la ruta óptima y el Ping General con BFS.
 """
 
+from sistema_archivos import FileSystem
+from TablaHash import TablaHash
+
 
 class Grafo:
     def __init__(self, funcion_log=None):
@@ -26,11 +29,17 @@ class Grafo:
             { "ServidorA": {"ServidorB": 10, "ServidorC": 25}, ... }
         funcion_log: callback que el Módulo 4 (Persona D) inyectará para
             escribir en network_audit_log.txt. Si no se pasa (modo
-            standalone/pruebas), se usa un logger local que solo imprime
-            en consola, igual que en el Módulo 2.
+            standalone/pruebas), se usa un logger local silencioso.
         """
+        # Lista de adyacencia vacía: la red inicia sin servidores.
         self.adyacencia = {}
+        # Cada servidor mantiene su propio árbol. Las llaves son los mismos
+        # nombres usados por la lista de adyacencia.
+        self.sistemas_archivos = {}
+        # Callback de auditoría (M4) o logger silencioso si no se pasó ninguno.
         self.funcion_log = funcion_log or self._log_local
+        # Una tabla hash de credenciales por servidor (mismas llaves que arriba).
+        self.tablas_credenciales = {}
 
     # ---------------- Vértices (servidores) ----------------
     def agregar_servidor(self, nombre):
@@ -39,16 +48,30 @@ class Grafo:
         Returns:
             True si se agregó, False si ya existía o el nombre es inválido.
         """
+        # 1) El nombre debe ser un texto no vacío.
         if not isinstance(nombre, str) or not nombre.strip():
             print("El nombre del servidor debe ser un texto no vacío.")
             return False
 
+        # 2) Quitar espacios sobrantes y verificar que no esté duplicado.
         nombre = nombre.strip()
         if nombre in self.adyacencia:
+            print(f"Error: el servidor '{nombre}' ya existe en la red. "
+                  f"No se registró un servidor duplicado.")
             self.funcion_log(f"Registro de servidor FALLIDO (ya existe): {nombre}")
             return False
 
+        # 3) Registrar el vértice con sus TRES estructuras asociadas:
+        #    lista de adyacencia, árbol de archivos y tabla de credenciales.
         self.adyacencia[nombre] = {}
+        self.sistemas_archivos[nombre] = FileSystem()
+        self.tablas_credenciales[nombre] = TablaHash(
+            # La auditoría de esta tabla quedará etiquetada con el servidor.
+            funcion_log=lambda detalle, servidor=nombre: self.funcion_log(
+                f"[Servidor {servidor}] {detalle}"
+            )
+        )
+        # Último paso: dejar constancia del alta en la bitácora (M4).
         self.funcion_log(f"Servidor agregado a la red: {nombre}")
         return True
 
@@ -63,6 +86,7 @@ class Grafo:
         Returns:
             True si se eliminó, False si no existía.
         """
+        # Verificar que el servidor exista antes de tocar las estructuras.
         if nombre not in self.adyacencia:
             print(f"Error: el servidor '{nombre}' no existe en la red.")
             return False
@@ -74,6 +98,8 @@ class Grafo:
 
         # Quitar el vértice mismo (sus conexiones salientes se van con él)
         del self.adyacencia[nombre]
+        del self.sistemas_archivos[nombre]    # se descarta su árbol...
+        del self.tablas_credenciales[nombre]  # ...y su tabla hash
         self.funcion_log(f"Servidor eliminado de la red: {nombre}")
         return True
 
@@ -89,16 +115,21 @@ class Grafo:
         Returns:
             True si se creó/actualizó la conexión, False si hubo error.
         """
+        # Ambos servidores deben existir en la red.
         if origen not in self.adyacencia:
             print(f"Error: el servidor '{origen}' no existe en la red.")
             return False
         if destino not in self.adyacencia:
             print(f"Error: el servidor '{destino}' no existe en la red.")
             return False
+        # Un servidor no se conecta consigo mismo (sin bucles propios).
         if origen == destino:
             print("Error: no se puede conectar un servidor consigo mismo.")
             return False
-        if not isinstance(latencia_ms, (int, float)) or latencia_ms <= 0:
+        # La latencia debe ser un número finito estrictamente mayor que 0.
+        if (not isinstance(latencia_ms, (int, float))
+                or not float("-inf") < latencia_ms < float("inf")
+                or latencia_ms <= 0):
             print("Error: la latencia debe ser un número mayor que 0 ms.")
             return False
 
@@ -116,6 +147,7 @@ class Grafo:
         Returns:
             True si la conexión existía y se eliminó, False en caso contrario.
         """
+        # Debe existir el servidor origen y el enlace hacia el destino.
         if origen not in self.adyacencia:
             print(f"Error: el servidor '{origen}' no existe en la red.")
             return False
@@ -133,20 +165,33 @@ class Grafo:
         """Devuelve la lista de nombres de todos los vértices del grafo."""
         return list(self.adyacencia.keys())
 
+    def obtener_sistema_archivos(self, servidor):
+        """Devuelve el árbol asociado al servidor o None si no existe."""
+        return self.sistemas_archivos.get(servidor)
+
+    def obtener_tabla_credenciales(self, servidor):
+        """Devuelve la tabla hash local del servidor o None si no existe."""
+        return self.tablas_credenciales.get(servidor)
+
     def mostrar_red(self):
         """Imprime la topología completa: cada servidor y sus conexiones."""
+        # Encabezado con la cantidad total de servidores.
         print(f"\n--- Red actual ({len(self.adyacencia)} servidores) ---")
+        # Si no hay vértices, se avisa y no se intenta recorrer nada.
         if not self.adyacencia:
             print("(red vacía: no hay servidores registrados)")
             return
+        # Listar cada servidor con todas sus conexiones (vecino + latencia).
         for servidor in self.adyacencia:
             vecinos = self.adyacencia[servidor]
             if vecinos:
+                # Construir "vecino (ms), vecino (ms)" para la impresión.
                 enlaces = ", ".join(
                     f"{vecino} ({latencia} ms)" for vecino, latencia in vecinos.items()
                 )
                 print(f"{servidor} -> {enlaces}")
             else:
+                # Vértice aislado: no tiene ninguna arista.
                 print(f"{servidor} -> (sin conexiones)")
 
     # ---------------- Diagnóstico: Ping General (BFS) ----------------
@@ -169,11 +214,14 @@ class Grafo:
             red está completamente comunicada), o None si la red está vacía
             o el inicio no existe.
         """
+        # Sin vértices no hay nada que recorrer.
         if not self.adyacencia:
             print("La red está vacía: no hay servidores que revisar.")
             return None
 
+        # Si no se indicó inicio, se toma el primer servidor registrado.
         inicio = servidor_inicio if servidor_inicio else self.obtener_servidores()[0]
+        # El punto de partida debe existir en la red.
         if inicio not in self.adyacencia:
             print(f"Error: el servidor '{inicio}' no existe en la red.")
             return None
@@ -182,16 +230,18 @@ class Grafo:
         visitados = set()
         cola = [inicio]
         while cola:
-            actual = cola.pop(0)
+            actual = cola.pop(0)  # sacar el primero de la cola (FIFO)
             if actual in visitados:
-                continue
-            visitados.add(actual)
+                continue  # ya se alcanzó antes por otro camino
+            visitados.add(actual)  # marcar como alcanzable
             for vecino in self.adyacencia[actual]:
                 if vecino not in visitados:
-                    cola.append(vecino)
+                    cola.append(vecino)  # encolar vecinos pendientes
 
+        # Lo que no se visitó es exactamente lo que quedó aislado.
         aislados = [s for s in self.adyacencia if s not in visitados]
 
+        # --- Reporte en pantalla del resultado del ping ---
         print(f"\n--- Ping General (BFS desde '{inicio}') ---")
         print(f"Alcanzables: {len(visitados)}/{len(self.adyacencia)} servidores")
         if aislados:
@@ -226,10 +276,10 @@ class Grafo:
         en componentes desconectadas).
 
         Returns:
-            Tupla (camino, costo_total) donde camino es la lista de
-            servidores desde el origen hasta el destino, o (None, None) si
-            no existe ruta o algún servidor no existe.
+            Tupla (camino, costo_total). Para servidores existentes sin ruta
+            devuelve ([], infinito); si un servidor no existe, (None, None).
         """
+        # Ambos servidores deben existir para poder calcular la ruta.
         if origen not in self.adyacencia:
             print(f"Error: el servidor origen '{origen}' no existe en la red.")
             return None, None
@@ -246,22 +296,25 @@ class Grafo:
 
         # Paso 2 y 3: extraer el no visitado más cercano y relajar aristas
         while True:
-            actual = None
-            menor = infinito
+            actual = None  # candidato de esta vuelta (None = no queda ninguno)
+            menor = infinito  # mejor distancia vista hasta ahora
             for servidor in self.adyacencia:
+                # Elegir el no visitado con la menor distancia acumulada.
                 if servidor not in visitados and distancias[servidor] < menor:
                     menor = distancias[servidor]
-                    actual = servidor
+                    actual = servidor  # quedarse con el más cercano
 
             if actual is None or actual == destino:
                 break  # no quedan alcanzables, o ya llegamos al destino
 
-            visitados.add(actual)
+            visitados.add(actual)  # ya no se vuelve a considerar
+            # "Relajación": si pasar por 'actual' es más barato al vecino,
+            # se actualiza su distancia y se anota por dónde se llegó.
             for vecino, peso in self.adyacencia[actual].items():
                 nueva_distancia = distancias[actual] + peso
                 if nueva_distancia < distancias[vecino]:
                     distancias[vecino] = nueva_distancia
-                    previos[vecino] = actual
+                    previos[vecino] = actual  # predecesor para reconstruir
 
         # Si el destino sigue en infinito, está en otra componente del grafo
         if distancias[destino] == infinito:
@@ -269,15 +322,16 @@ class Grafo:
             self.funcion_log(
                 f"Cálculo de ruta FALLIDO (sin ruta): {origen} -> {destino}"
             )
-            return None, None
+            return [], infinito
 
         # Reconstruir el camino hacia atrás usando los previos
         camino = []
         nodo = destino
         while nodo is not None:
-            camino.insert(0, nodo)
-            nodo = previos[nodo]
+            camino.insert(0, nodo)  # se antepone cada salto (va al inicio)
+            nodo = previos[nodo]  # retroceder un paso hacia el origen
 
+        # La distancia calculada al destino es el costo total de la ruta.
         costo_total = distancias[destino]
 
         # Imprimir salto por salto con el costo de cada arista y el acumulado
@@ -301,9 +355,5 @@ class Grafo:
 
     # ---------------- Logger local (solo para pruebas aisladas) ----------------
     def _log_local(self, detalle):
-        from datetime import datetime
-        marca = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"[LOG local] {marca} - {detalle}")
-        # En la integración final, Daniel reemplaza este
-        # callback por su función real que hace append a
-        # network_audit_log.txt con fecha, hora y detalle.
+        """Logger silencioso para ejecuciones aisladas sin callback."""
+        return None
